@@ -6,6 +6,7 @@ from ....checkout import AddressType
 from ...account.enums import AddressTypeEnum
 from ...account.types import Address, AddressInput, User
 from ...core.mutations import BaseMutation, ModelDeleteMutation, ModelMutation
+from ...core.utils.error_codes import AccountErrorCode
 from .base import (
     INVALID_TOKEN,
     BaseAddressDelete,
@@ -111,7 +112,10 @@ class AccountDelete(ModelDeleteMutation):
     def clean_instance(cls, info, instance):
         super().clean_instance(info, instance)
         if instance.is_staff:
-            raise ValidationError("Cannot delete a staff account.")
+            raise ValidationError(
+                "Cannot delete a staff account.",
+                code=AccountErrorCode.DELETE_STUFF_ACCOUNT,
+            )
 
     @classmethod
     def perform_mutation(cls, _root, info, **data):
@@ -120,7 +124,13 @@ class AccountDelete(ModelDeleteMutation):
 
         token = data.pop("token")
         if str(user.token) != token:
-            raise ValidationError({"token": INVALID_TOKEN})
+            raise ValidationError(
+                {
+                    "token": ValidationError(
+                        INVALID_TOKEN, code=AccountErrorCode.INVALID_USER_TOKEN
+                    )
+                }
+            )
 
         db_id = user.id
 
@@ -209,7 +219,14 @@ class AccountSetDefaultAddress(BaseMutation):
         user = info.context.user
 
         if not user.addresses.filter(pk=address.pk).exists():
-            raise ValidationError({"id": "The address doesn't belong to that user."})
+            raise ValidationError(
+                {
+                    "id": ValidationError(
+                        "The address doesn't belong to that user.",
+                        code=AccountErrorCode.NOT_USERS_ADDRESS,
+                    )
+                }
+            )
 
         if data.get("type") == AddressTypeEnum.BILLING.value:
             address_type = AddressType.BILLING

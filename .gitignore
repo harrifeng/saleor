@@ -32,10 +32,8 @@ dist/
 /media/
 /node_modules/
 /static/
-/saleor/static/assets/
 webpack-bundle.json
 /templates/templated_email/compiled/*
 !/templates/templated_email/compiled/.gitkeep
-
 # Exported results file
 django-queries-results.html
